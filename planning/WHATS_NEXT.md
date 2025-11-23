@@ -1,8 +1,8 @@
 # What's Next
 
-**Current Status**: Phase 1 Complete
-**Next Phase**: Phase 2 - Deterministic Analytics Layer
-**Previous**: See `PHASE_1_COMPLETE.md` for what was built
+**Current Status**: Phase 2 Complete
+**Next Phase**: Phase 3 - LLM-Powered Insights
+**Previous**: See `PHASE_2_COMPLETE.md` for what was built
 
 ---
 
