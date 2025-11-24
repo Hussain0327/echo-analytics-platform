@@ -1,327 +1,199 @@
 # What's Next
 
-**Current Status**: Phase 2 Complete
-**Next Phase**: Phase 3 - LLM-Powered Insights
-**Previous**: See `PHASE_2_COMPLETE.md` for what was built
+**Current Status**: Phase 3 In Progress
+**Last Updated**: 2025-11-24
+**Previous**: See `PHASE_3_PROGRESS.md` for what was just built
 
 ---
 
 ## Where We Left Off
 
-Phase 1 is complete. The data ingestion layer is fully functional:
-- CSV/Excel upload endpoints working
-- Schema detection identifies column types (date, currency, email, etc.)
-- Validation engine provides helpful error messages
-- All uploads stored in PostgreSQL
-- 39 tests passing, 88% coverage
+The conversational AI layer is working. Echo can chat with users, understand their data, and explain metrics in plain English.
 
-You can now upload data files and get back structured schema information with validation feedback.
+**What's done:**
+- Chat endpoints (send messages, load data, manage sessions)
+- Echo persona (McKinsey-style consultant)
+- Data context injection (auto-calculates metrics when you upload)
+- Session management (maintains conversation history)
+- 31 tests, 99% coverage on conversation service
 
----
-
-## What We Need to Do: Phase 2
-
-Phase 2 builds the analytics engine - the deterministic calculations that form the foundation of Echo's value. No LLM involvement here. Just accurate, testable math.
-
-### Core Principle
-
-```
-Raw Data -> Deterministic Metrics -> (Later: LLM Narrative)
-             ^^^^^^^^^^^^^^^^^
-             Phase 2 builds this
-```
-
-### Deliverables
-
-1. **Metrics Engine Architecture**
-   - Base metric class with standard interface
-   - Metric result model (value, unit, period, metadata)
-   - Metric registry for discovery
-
-2. **Revenue Metrics**
-   - Total Revenue
-   - MRR (Monthly Recurring Revenue)
-   - ARR (Annual Recurring Revenue)
-   - Revenue Growth Rate (MoM, YoY)
-
-3. **Financial Metrics**
-   - CAC (Customer Acquisition Cost)
-   - LTV (Lifetime Value)
-   - LTV:CAC Ratio
-   - Burn Rate
-
-4. **Marketing Metrics**
-   - Conversion Rate
-   - Funnel Analysis (leads -> customers)
-   - Channel Performance
-
-5. **Time-Series Utilities**
-   - Period aggregation (daily, weekly, monthly)
-   - Period-over-period comparisons
+You can now have a natural conversation about your business data.
 
 ---
 
-## Quick Start for Phase 2
+## What We Need to Do Next
 
-### Step 1: Read the Plan
-Open: `/planning/03_PHASE_2_ANALYTICS_LAYER.md`
+The conversation works, but we're still missing structured reports. Right now Echo gives ad-hoc answers. We need it to also generate proper reports.
 
-### Step 2: First Task - Base Metric Class
+### Task 1: Report Templates
 
-Create `app/services/metrics/base.py`:
+Create predefined report formats that combine multiple metrics into a cohesive story.
 
-```python
-from abc import ABC, abstractmethod
-from typing import Dict, Any, List
-import pandas as pd
-from pydantic import BaseModel
-from datetime import datetime
+**Templates to build:**
+1. **Weekly Revenue Health**
+   - Total revenue, growth rate, MRR, ARR
+   - Revenue by product breakdown
+   - Key trends and concerns
 
+2. **Marketing Funnel Performance**
+   - Conversion rate, funnel analysis
+   - Channel performance comparison
+   - Optimization opportunities
 
-class MetricResult(BaseModel):
-    metric_name: str
-    value: float
-    unit: str  # "$", "%", "count"
-    period: str  # "2024-01", "Q1 2024"
-    metadata: Dict[str, Any] = {}
-    calculated_at: datetime = datetime.now()
+3. **Financial Overview**
+   - CAC, LTV, LTV:CAC ratio
+   - Burn rate, runway
+   - Unit economics assessment
 
+Each template should define:
+- Required metrics
+- Required data columns
+- Narrative sections (executive summary, findings, recommendations)
 
-class MetricDefinition(BaseModel):
-    name: str
-    display_name: str
-    description: str
-    category: str  # "revenue", "financial", "marketing"
-    unit: str
-    formula: str
-    required_columns: List[str]
-
-
-class BaseMetric(ABC):
-
-    def __init__(self, df: pd.DataFrame):
-        self.df = df
-        self.validate_data()
-
-    @abstractmethod
-    def calculate(self) -> MetricResult:
-        pass
-
-    @abstractmethod
-    def get_definition(self) -> MetricDefinition:
-        pass
-
-    def validate_data(self):
-        definition = self.get_definition()
-        missing = [col for col in definition.required_columns if col not in self.df.columns]
-        if missing:
-            raise ValueError(f"Missing columns for {definition.name}: {missing}")
+**Files to create:**
+```
+app/services/reports/
+├── __init__.py
+├── templates.py      # Template definitions
+└── generator.py      # Report generation logic
 ```
 
-### Step 3: First Metric - Total Revenue
+### Task 2: Report Generation Endpoint
 
-Create `app/services/metrics/revenue.py`:
+Build the API to generate reports from templates.
 
-```python
-import pandas as pd
-from app.services.metrics.base import BaseMetric, MetricResult, MetricDefinition
+```
+POST /api/v1/reports/generate
+  - template_type: "revenue_health" | "marketing_funnel" | "financial_overview"
+  - file: CSV upload
 
-
-class TotalRevenue(BaseMetric):
-
-    def get_definition(self) -> MetricDefinition:
-        return MetricDefinition(
-            name="total_revenue",
-            display_name="Total Revenue",
-            description="Sum of all revenue in the period",
-            category="revenue",
-            unit="$",
-            formula="SUM(amount)",
-            required_columns=["amount"]
-        )
-
-    def calculate(self, period: str = None) -> MetricResult:
-        total = self.df["amount"].sum()
-        return MetricResult(
-            metric_name="total_revenue",
-            value=round(total, 2),
-            unit="$",
-            period=period or "all"
-        )
+Returns:
+  - report_id
+  - metrics (all calculated values)
+  - narratives (LLM-generated sections)
 ```
 
-### Step 4: Test It
+This combines:
+1. Calculate all required metrics (deterministic)
+2. Generate narrative sections (LLM)
+3. Format into structured report
+
+### Task 3: Report Storage
+
+Save generated reports to PostgreSQL for history.
+
+**Model:**
+```python
+class Report:
+    id: str
+    template_type: str
+    created_at: datetime
+    metrics: JSON       # Calculated metrics
+    narratives: JSON    # Generated text
+    data_source_id: str # Link to uploaded data
+```
+
+**Endpoints:**
+```
+GET /api/v1/reports              List all reports
+GET /api/v1/reports/{id}         Get specific report
+GET /api/v1/reports/compare      Compare two reports
+```
+
+---
+
+## Quick Start
+
+### If you want to test the current chat:
 
 ```bash
-docker-compose exec app python
->>> import pandas as pd
->>> from app.services.metrics.revenue import TotalRevenue
->>> df = pd.read_csv('data/samples/revenue_sample.csv')
->>> metric = TotalRevenue(df)
->>> result = metric.calculate()
->>> print(f"Total Revenue: ${result.value:,.2f}")
+# Start services
+docker-compose up -d
+
+# Basic chat
+curl -X POST "http://localhost:8000/api/v1/chat" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hi!"}'
+
+# Chat with data
+curl -X POST "http://localhost:8000/api/v1/chat/with-data" \
+  -F "message=How's my revenue?" \
+  -F "file=@data/samples/revenue_sample.csv"
 ```
 
----
+### If you want to run the tests:
 
-## Phase 2 Task Checklist
+```bash
+# Run all service tests (no database needed)
+docker-compose exec app pytest tests/services/ -v
 
-### Task 1: Metrics Architecture (Day 1)
-- [ ] Create `app/services/metrics/` directory
-- [ ] Create `base.py` with BaseMetric, MetricResult, MetricDefinition
-- [ ] Create `registry.py` for metric discovery
-- [ ] Write tests for base classes
-
-### Task 2: Revenue Metrics (Day 1-2)
-- [ ] TotalRevenue
-- [ ] MRR (Monthly Recurring Revenue)
-- [ ] ARR (Annual Recurring Revenue)
-- [ ] RevenueGrowthRate
-- [ ] Tests for each metric
-
-### Task 3: Financial Metrics (Day 2-3)
-- [ ] CAC (Customer Acquisition Cost)
-- [ ] LTV (Lifetime Value)
-- [ ] LTVCACRatio
-- [ ] Tests for each metric
-
-### Task 4: Marketing Metrics (Day 3-4)
-- [ ] ConversionRate
-- [ ] FunnelAnalysis
-- [ ] ChannelPerformance
-- [ ] Tests for each metric
-
-### Task 5: Time-Series Utilities (Day 4-5)
-- [ ] Create `app/services/metrics/timeseries.py`
-- [ ] Period aggregation (daily, weekly, monthly)
-- [ ] Period-over-period comparison
-- [ ] Tests for time-series functions
-
-### Task 6: API Endpoints (Day 5)
-- [ ] Create `app/api/v1/metrics.py`
-- [ ] GET /metrics - List available metrics
-- [ ] POST /metrics/calculate - Calculate metrics for a data source
-- [ ] Tests for API endpoints
-
----
-
-## Success Criteria
-
-Phase 2 is complete when:
-
-1. All metrics pass unit tests with known datasets
-2. Metrics match manual calculations (verified with sample data)
-3. Metrics API endpoints return correct results
-4. Code coverage remains >80%
-
----
-
-## Key Files to Create
-
-```
-app/services/metrics/
-├── __init__.py
-├── base.py          # BaseMetric, MetricResult, MetricDefinition
-├── registry.py      # Metric registry for discovery
-├── revenue.py       # TotalRevenue, MRR, ARR, GrowthRate
-├── financial.py     # CAC, LTV, LTVCACRatio
-├── marketing.py     # ConversionRate, FunnelAnalysis
-└── timeseries.py    # Period aggregation, comparisons
-
-app/api/v1/metrics.py  # Metrics API endpoints
-
-tests/services/metrics/
-├── __init__.py
-├── test_revenue.py
-├── test_financial.py
-├── test_marketing.py
-└── test_timeseries.py
-```
-
----
-
-## Testing Approach
-
-For each metric:
-1. Create a known dataset with expected results
-2. Calculate metric
-3. Assert result matches expected value exactly
-
-Example:
-```python
-def test_total_revenue():
-    df = pd.DataFrame({
-        'amount': [100, 200, 300]
-    })
-    metric = TotalRevenue(df)
-    result = metric.calculate()
-    assert result.value == 600.0
-    assert result.unit == "$"
+# Run just the LLM tests
+docker-compose exec app pytest tests/services/llm/ -v
 ```
 
 ---
 
 ## Architecture Notes
 
-**Single Agent Decision**: We decided against multi-agent architecture. Phase 3 will use a single LLM call to generate narratives from the calculated metrics. This keeps costs low and latency fast.
-
-**Metrics Flow**:
+**Current flow:**
 ```
-Data Source (from Phase 1)
-    |
-    v
-Load DataFrame
-    |
-    v
-Calculate Metrics (Phase 2)
-    |
-    v
-Return MetricResult objects
-    |
-    v
-(Phase 3: Pass to LLM for narrative)
+User Message
+    ↓
+Chat Endpoint (chat.py)
+    ↓
+Conversation Service (conversation.py)
+    ↓
+    ├─→ Context Builder (context_builder.py)
+    │       ↓
+    │   Metrics Engine (from Phase 2)
+    │       ↓
+    │   Formatted Context
+    ↓
+System Prompt + Context + History
+    ↓
+DeepSeek API
+    ↓
+Response to User
 ```
 
----
-
-## Development Commands
-
-```bash
-# Run tests
-docker-compose exec app pytest tests/services/metrics/ -v
-
-# Run with coverage
-docker-compose exec app pytest --cov=app/services/metrics
-
-# Test a metric interactively
-docker-compose exec app python
->>> from app.services.metrics.revenue import MRR
->>> import pandas as pd
->>> df = pd.read_csv('data/samples/revenue_sample.csv')
->>> mrr = MRR(df)
->>> result = mrr.calculate(period='2024-01')
->>> print(result)
+**For report generation, we'll add:**
+```
+Report Request
+    ↓
+Report Generator (generator.py)
+    ↓
+    ├─→ Template (templates.py)
+    ├─→ Metrics Engine
+    └─→ Narrator (for each section)
+    ↓
+Structured Report
+    ↓
+Save to PostgreSQL
+    ↓
+Return to User
 ```
 
 ---
 
-## Resources
+## Success Criteria
 
-- Phase 2 detailed plan: `/planning/03_PHASE_2_ANALYTICS_LAYER.md`
-- Sample revenue data: `data/samples/revenue_sample.csv`
-- Sample marketing data: `data/samples/marketing_sample.csv`
-
----
-
-## After Phase 2
-
-Phase 3: LLM-Powered Insights
-- Report templates
-- DeepSeek narrative generation (single call, not multi-agent)
-- Natural language Q&A
-
-The metrics from Phase 2 feed directly into Phase 3's narrative generation.
+Phase 3 is complete when:
+1. Can generate a structured report from a template
+2. Reports include both metrics and narratives
+3. Reports are stored and retrievable
+4. At least 2 template types working
+5. Tests for report generation
 
 ---
 
-*Last updated: 2025-11-22*
+## Files to Reference
+
+- Current chat: `app/api/v1/chat.py`
+- Conversation service: `app/services/llm/conversation.py`
+- Context builder: `app/services/llm/context_builder.py`
+- Echo persona: `app/services/llm/prompts/consultant.py`
+- Original Phase 3 plan: `planning/04_PHASE_3_WORKFLOW_AND_USER_FLOW.md`
+
+---
+
+*Last updated: 2025-11-24*

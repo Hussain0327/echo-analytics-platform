@@ -2,7 +2,7 @@
 
 > Building an AI-powered analytics tool that turns messy business data into clear insights. Because small businesses deserve good data tools too.
 
-**Status**: In Development - Phase 2 Complete
+**Status**: In Development - Phase 3 In Progress (Conversational AI)
 **Powered by**: DeepSeek 3.2, FastAPI, PostgreSQL, Redis
 **Goal**: Transform 2-hour manual reports into 15-minute automated insights
 
@@ -28,6 +28,51 @@ I don't trust LLMs to do calculations. They're great at explaining things, terri
 
 ## Current Status
 
+### Phase 3 In Progress (Conversational AI)
+Built "Echo" - a conversational data consultant. Think McKinsey analyst meets chatbot, but it actually knows your numbers.
+
+**What's working now:**
+- Conversational chat interface with DeepSeek
+- Session management (maintains context across messages)
+- Data context injection (upload a CSV, Echo knows what's in it)
+- Automatic metrics calculation when you load data
+- McKinsey-style persona - direct, insightful, no jargon
+- Guardrails to stay on topic and never make up numbers
+
+Try it:
+```bash
+# Start the services
+docker-compose up -d
+
+# Chat with Echo
+curl -X POST "http://localhost:8000/api/v1/chat" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hi!"}'
+
+# Chat with your data
+curl -X POST "http://localhost:8000/api/v1/chat/with-data" \
+  -F "message=How's my revenue looking?" \
+  -F "file=@data/samples/revenue_sample.csv"
+```
+
+The conversation feels natural:
+```
+You: "Hi!"
+Echo: "Hey! Ready to dig into some numbers? What's on your mind today?"
+
+You: "What's happening with my revenue?"
+Echo: "Your revenue hit $190K this period - up 12% from last month.
+       The interesting thing is Enterprise plans are driving 60% of
+       that growth. Worth thinking about whether to double down there
+       or diversify."
+
+You: "Can you write me a poem?"
+Echo: "Ha, I'm better with spreadsheets than sonnets. But if you want,
+       I can make your revenue trends sound poetic - 'growth curves
+       rising like a hopeful dawn'? Kidding. What data questions can
+       I help with?"
+```
+
 ### Phase 2 Complete (Deterministic Analytics)
 The metrics engine is done. 20 business metrics, all deterministic math, no AI hallucinations.
 
@@ -36,88 +81,36 @@ The metrics engine is done. 20 business metrics, all deterministic math, no AI h
 - 6 financial metrics (CAC, LTV, LTV:CAC Ratio, Gross Margin, Burn Rate, Runway)
 - 7 marketing metrics (Conversion Rate, Channel/Campaign Performance, CPL, ROAS, Lead Velocity, Funnel)
 - Time-series analysis (trends, growth, period comparisons)
-- 124 tests passing, 88% coverage
+- 143 tests passing, 81% coverage
 
-Try it:
 ```bash
-# Start the services
-docker-compose up -d
-
 # Calculate revenue metrics from a CSV
 curl -X POST "http://localhost:8000/api/v1/metrics/calculate/revenue" \
   -F "file=@data/samples/revenue_sample.csv"
 ```
 
-Example output (real numbers from sample data):
-```
-total_revenue: $190,100.50
-  transaction_count: 92
-  average_transaction: $2,066.31
-
-revenue_by_period:
-  2024-01: $51,930.50
-  2024-02: $54,900.00
-  2024-03: $61,190.00
-  2024-04: $22,080.00
-
-revenue_by_product:
-  Enterprise: $124,720.50 (38 transactions, avg $3,282.12)
-  Pro Plan: $57,330.00 (41 transactions, avg $1,398.29)
-  Basic: $8,050.00 (13 transactions, avg $619.23)
-
-mrr: $190,100.50
-arr: $2,281,206.00
-revenue_growth: -63.92% (Apr vs Mar - expected, Apr data is partial)
-```
-
-Marketing metrics output:
-```
-conversion_rate: 10.21%
-  total_leads: 17,254
-  total_conversions: 1,762
-
-channel_performance:
-  Facebook: 6,482 leads, 649 conversions, 10.01% rate, $24.47 CPC
-  Google Ads: 5,933 leads, 642 conversions, 10.82% rate, $26.93 CPC
-  Email: 3,168 leads, 288 conversions, 9.09% rate, $1.74 CPC
-  LinkedIn: 848 leads, 148 conversions, 17.45% rate, $32.43 CPC
-  Twitter: 823 leads, 35 conversions, 4.25% rate, $49.14 CPC
-
-cost_per_lead: $2.33
-top_channel: Facebook (by volume)
-best_conversion: LinkedIn (17.45%)
-cheapest_acquisition: Email ($1.74 per conversion)
-```
-
 All numbers verified against manual calculations. Pure pandas math, no AI involved.
 
-### Next Up: Phase 3 (LLM Intelligence)
-What I'm building next:
+### What's Left in Phase 3
 - Report templates (Weekly Revenue, Marketing Funnel)
-- DeepSeek narrative generation from these metrics
-- Natural language Q&A about the data
+- Structured report generation
+- Report history and versioning
 
 ---
 
 ## API Endpoints
 
-### Health
+### Chat (Phase 3) - Talk to Echo
 ```
-GET  /                        Service info
-GET  /api/v1/health           Basic health check
-GET  /api/v1/health/db        Database health
-GET  /api/v1/health/redis     Redis health
-```
-
-### Ingestion (Phase 1)
-```
-POST /api/v1/ingestion/upload/csv     Upload CSV file
-POST /api/v1/ingestion/upload/excel   Upload Excel file
-GET  /api/v1/ingestion/sources        List all uploaded sources
-GET  /api/v1/ingestion/sources/{id}   Get source by ID
+POST /api/v1/chat                    Send a message to Echo
+POST /api/v1/chat/with-data          Chat + upload data in one call
+POST /api/v1/chat/load-data          Load data into existing session
+GET  /api/v1/chat/history/{id}       Get conversation history
+DELETE /api/v1/chat/session/{id}     Clear a session
+GET  /api/v1/chat/sessions           List all active sessions
 ```
 
-### Metrics (Phase 2)
+### Metrics (Phase 2) - Deterministic Calculations
 ```
 GET  /api/v1/metrics/available           List all available metrics
 POST /api/v1/metrics/calculate/csv       Calculate any metrics from CSV
@@ -127,10 +120,26 @@ POST /api/v1/metrics/trend               Trend analysis on a column
 POST /api/v1/metrics/growth              Growth analysis over time
 ```
 
+### Ingestion (Phase 1) - Data Upload
+```
+POST /api/v1/ingestion/upload/csv     Upload CSV file
+POST /api/v1/ingestion/upload/excel   Upload Excel file
+GET  /api/v1/ingestion/sources        List all uploaded sources
+GET  /api/v1/ingestion/sources/{id}   Get source by ID
+```
+
+### Health
+```
+GET  /                        Service info
+GET  /api/v1/health           Basic health check
+GET  /api/v1/health/db        Database health
+GET  /api/v1/health/redis     Redis health
+```
+
 ### API Documentation
 ```
-GET  /api/v1/docs             Swagger UI
-GET  /api/v1/redoc            ReDoc
+GET  /docs                    Swagger UI
+GET  /redoc                   ReDoc
 ```
 
 ---
@@ -224,7 +233,8 @@ Echo/
 │   ├── api/v1/            # API endpoints
 │   │   ├── health.py      # Health checks
 │   │   ├── ingestion.py   # File upload endpoints
-│   │   └── metrics.py     # Metrics calculation endpoints
+│   │   ├── metrics.py     # Metrics calculation endpoints
+│   │   └── chat.py        # Conversational AI endpoints (Phase 3)
 │   ├── core/              # Database, cache, config
 │   ├── models/            # SQLAlchemy & Pydantic models
 │   │   ├── data_source.py # Upload tracking model
@@ -241,11 +251,16 @@ Echo/
 │       │   ├── financial.py     # 6 financial metrics
 │       │   ├── marketing.py     # 7 marketing metrics
 │       │   └── timeseries.py    # Time-series utilities
-│       └── llm/                 # DeepSeek integration (Phase 3)
-├── tests/                 # Test suite (124 tests)
+│       └── llm/                 # Conversational AI (Phase 3)
+│           ├── conversation.py  # Chat service, session management
+│           ├── context_builder.py # Formats data/metrics for LLM
+│           └── prompts/
+│               └── consultant.py # Echo's persona and guardrails
+├── tests/                 # Test suite (143 tests)
 │   ├── api/              # API tests
 │   └── services/         # Service tests
-│       └── metrics/      # Metrics tests (75 tests)
+│       ├── metrics/      # Metrics tests (75 tests)
+│       └── llm/          # Conversation tests (31 tests)
 ├── planning/              # Detailed phase docs
 ├── data/samples/          # Sample datasets
 │   ├── revenue_sample.csv
@@ -293,7 +308,7 @@ Target: >4.0/5 rating on generated insights
 Target: >90% match with expert analysis (using golden datasets)
 
 **Code Quality**
-Current: 88% test coverage, 124 passing tests
+Current: 81% test coverage, 143 passing tests
 
 ---
 
@@ -310,7 +325,6 @@ Current: 88% test coverage, 124 passing tests
 - [x] Schema detection (date, currency, email, URL, boolean)
 - [x] Data validation with helpful messages
 - [x] Store uploads in PostgreSQL
-- [x] 39 tests, 88% coverage
 
 ### Phase 2: Analytics (Complete)
 - [x] Revenue metrics (Total, MRR, ARR, Growth, AOV, by Period, by Product)
@@ -318,18 +332,47 @@ Current: 88% test coverage, 124 passing tests
 - [x] Marketing metrics (Conversion, Channel, Campaign, CPL, ROAS, Velocity, Funnel)
 - [x] Time-series utilities (trends, growth, comparisons)
 - [x] Metrics API endpoints
-- [x] 124 tests, 88% coverage
 
-### Phase 3: Intelligence (Next)
-- [ ] Report templates
-- [ ] DeepSeek narrative generation
-- [ ] Natural language Q&A
+### Phase 3: Intelligence (In Progress)
+- [x] Conversational chat interface with DeepSeek
+- [x] Echo persona (McKinsey-style data consultant)
+- [x] Session management and conversation history
+- [x] Data context injection (metrics auto-calculated)
+- [x] Guardrails (stays on topic, never fabricates numbers)
+- [x] 31 new tests, 99% coverage on conversation service
+- [ ] Report templates (Weekly Revenue, Marketing Funnel)
+- [ ] Structured report generation
+- [ ] Report history and versioning
+
+### Phase 4-6: Polish and Production
+- [ ] Evaluation metrics and accuracy tracking
+- [ ] CI/CD pipeline
+- [ ] Documentation and demos
 
 See `/planning/` for detailed plans.
 
 ---
 
 ## Development Log
+
+**2025-11-24** - Phase 3 Started: Conversational AI
+Built "Echo" - the conversational data consultant interface:
+- Created the McKinsey-style persona with guardrails
+- Built conversation service with DeepSeek integration
+- Added session management (tracks conversation history per user)
+- Built data context builder that formats metrics for the LLM
+- Created 6 new chat API endpoints
+- 31 new tests, conversation service at 99% coverage
+
+The idea is simple: you already have accurate metrics from Phase 2, now Echo explains them in plain English. Upload your data, ask questions, get insights. Echo never makes up numbers - it only uses the deterministic metrics we already calculated.
+
+Key design decisions:
+- LLM never does math, only explains
+- Sessions maintain context across messages
+- Auto-calculates all available metrics when you load data
+- Politely redirects off-topic questions back to business analytics
+
+Files created: conversation.py, context_builder.py, consultant.py (persona), chat.py (API)
 
 **2025-11-23** - Phase 2 Complete
 Built the entire deterministic analytics layer:
@@ -399,6 +442,6 @@ Building in public. Questions? Feedback? Open an issue.
 
 ---
 
-*Last updated: 2025-11-23*
-*Current phase: Phase 3 - LLM Intelligence*
+*Last updated: 2025-11-24*
+*Current phase: Phase 3 - Conversational AI (In Progress)*
 *LLM: DeepSeek 3.2*
