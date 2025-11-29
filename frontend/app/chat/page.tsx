@@ -16,10 +16,10 @@ export default function ChatPage() {
   const handleFileSelect = async (file: File) => {
     setIsLoading(true);
     try {
-      const result = await api.chatWithData('Analyze this data and give me a summary.', file);
+      const result = await api.chatWithData('Analyze this data and give me a summary.', file) as any;
       setSessionId(result.session_id);
       setMessages([
-        { role: 'assistant', content: result.message, timestamp: new Date() }
+        { role: 'assistant', content: result.response || result.message, timestamp: new Date() }
       ]);
       setHasData(true);
     } catch (error) {
@@ -42,12 +42,12 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      const result = await api.chat(message, sessionId);
+      const result = await api.chat(message, sessionId) as any;
       setSessionId(result.session_id);
-      
+
       const assistantMessage: ChatMessage = {
         role: 'assistant',
-        content: result.message,
+        content: result.response || result.message,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, assistantMessage]);

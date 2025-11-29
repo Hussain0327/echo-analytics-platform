@@ -2,7 +2,7 @@
 
 > Building an AI-powered analytics tool that turns messy business data into clear insights. Because small businesses deserve good data tools too.
 
-**Status**: In Development - Phase 5 In Progress (Frontend + Production Ready)
+**Status**: In Development - Phase 5 In Progress (Frontend Working, Production Deploy Next)
 **Powered by**: DeepSeek 3.2, FastAPI, PostgreSQL, Redis, Next.js
 **Goal**: Transform 2-hour manual reports into 15-minute automated insights
 **Test Coverage**: 82% (190 tests passing)
@@ -31,27 +31,30 @@ I don't trust LLMs to do calculations. They're great at explaining things, terri
 
 ### Phase 5 In Progress (Frontend + Production Ready)
 
-Just built a complete React/Next.js frontend for Echo. Users can now upload files and get instant metrics through a clean web interface instead of just API calls.
+Frontend is now fully working in Codespaces. Spent some time debugging networking issues and API mismatches, but everything is functional now.
 
 **What's working:**
 - Next.js 15 frontend with TypeScript and Tailwind CSS
 - 3 pages: Home (file upload + metrics), Chat (talk to Echo), Reports (generate business reports)
 - 3 reusable components: FileUpload, MetricsCard, ChatInterface
-- Full API integration layer with error handling
-- Responsive design with drag-and-drop file upload
+- API proxy route to handle Codespaces port forwarding issues
+- Full end-to-end flow: upload CSV, get metrics, chat with Echo, generate reports
+- All backend endpoints accessible through the frontend
 
-**Current issue:**
-Working through Codespaces networking configuration. The frontend and backend are running but need proper port forwarding setup to communicate. The backend CORS is configured for Codespaces URLs, just need to make ports public in the Ports panel.
+**Issues fixed today (2025-11-29):**
+- Created Next.js API proxy (`/api/proxy/[...path]`) to work around Codespaces port visibility issues. Browser couldn't reach port 8000 directly, so now all API calls go through port 3000 and get forwarded internally.
+- Fixed chat/with-data endpoint call - the backend expects `message` as a query parameter, not form data. Was getting 422 validation errors until I fixed that.
+- Fixed response field mismatch in chat page - backend returns `response` but frontend was looking for `message`.
+- Updated CORS to use wildcard for development.
 
 **What's left for Phase 5:**
-- Fix Codespaces port visibility (ports 3000 and 8000 need to be public)
-- Test all three pages end-to-end
 - CI/CD pipeline (GitHub Actions)
-- Better error handling and logging
 - Rate limiting and security headers
 - Deploy to production (Railway for backend, Vercel for frontend)
+- End-to-end testing in production environment
+- Clean up the proxy solution or fix port visibility properly
 
-See `/frontend/` for the new React app and `/FRONTEND_COMPLETE.md` for details.
+See `/frontend/` for the React app and `/FRONTEND_COMPLETE.md` for details.
 
 ### Phase 4 Complete (Evaluation & Metrics)
 Built the entire evaluation system to track real impact. Now I can prove Echo actually saves time and delivers accurate insights.
@@ -531,6 +534,32 @@ See `/planning/` for detailed plans.
 
 ## Development Log
 
+**2025-11-29** - Phase 5 Continued: Fixed Frontend-Backend Communication
+Spent the session debugging why the frontend couldn't talk to the backend in Codespaces. Turned out to be a combination of networking issues and API contract mismatches.
+
+The problems:
+1. Codespaces port forwarding - even with ports set to public, the browser couldn't reliably reach port 8000. Kept getting CORS errors that were actually connection failures.
+2. chat/with-data API mismatch - the backend expects `message` as a query parameter but the frontend was sending it as form data. Result: 422 validation errors.
+3. Response field naming - backend returns `response` but the chat page was looking for `message`. Result: blank screen even when API calls succeeded.
+
+The fixes:
+1. Created a Next.js API proxy route at `/api/proxy/[...path]`. All frontend API calls now go through port 3000, and the Next.js server forwards them to localhost:8000 internally. This completely bypasses the Codespaces port visibility issue.
+2. Updated `lib/api.ts` to send message as a query parameter: `/chat/with-data?message=...`
+3. Updated chat page to use `result.response || result.message` so it handles both field names.
+
+The proxy handles file uploads too - had to be careful with FormData encoding for CSV files. The proxy reads the file content, ensures proper UTF-8 encoding, and forwards it to the backend.
+
+Current state: Everything works. Can upload files, calculate metrics, chat with Echo, generate reports. All through the browser.
+
+Next steps:
+- CI/CD pipeline
+- Rate limiting
+- Production deployment
+- Maybe revisit the proxy solution once deployed (won't need it outside Codespaces)
+
+Files created: `/frontend/app/api/proxy/[...path]/route.ts`
+Files modified: `/frontend/lib/api.ts`, `/frontend/app/chat/page.tsx`
+
 **2025-11-25** - Phase 5 Started: Frontend Development
 Started building the React/Next.js frontend to give Echo a proper web interface. Users can now interact with Echo through a clean UI instead of just API calls.
 
@@ -542,19 +571,8 @@ What I built:
 - TypeScript type definitions for all API responses
 - Responsive design that works on mobile and desktop
 
-Current challenge:
-Working through Codespaces networking configuration. The frontend and backend are both running, but need proper port forwarding to communicate. Backend CORS is configured for Codespaces URLs, just need to make ports 3000 and 8000 public in the Ports panel.
-
-Next steps:
-- Fix Codespaces port visibility
-- Test all three pages end-to-end with real data
-- Polish the UI and add loading states
-- Deploy frontend to Vercel, backend to Railway
-
 Files created: 10 new frontend files (pages, components, lib, types)
 Configuration added: .devcontainer/devcontainer.json for auto port forwarding
-
-This brings Echo much closer to being a real product people can use. Phase 5 in progress.
 
 **2025-11-25** - Phase 4 Complete: Evaluation & Metrics
 Built the entire evaluation system to prove Echo actually delivers value. Now I can track real impact and generate portfolio-ready stats.
@@ -695,8 +713,8 @@ Building in public. Questions? Feedback? Open an issue.
 
 ---
 
-*Last updated: 2025-11-25*
-*Current phase: Phase 5 In Progress (Frontend + Production Ready)*
+*Last updated: 2025-11-29*
+*Current phase: Phase 5 In Progress (Frontend Working, Production Deploy Next)*
 *Test coverage: 82% (190 tests passing)*
 *LLM: DeepSeek 3.2*
 *Frontend: Next.js 15 + TypeScript + Tailwind*

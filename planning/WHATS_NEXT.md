@@ -1,212 +1,155 @@
 # What's Next
 
-**Current Status**: Phase 4 Complete
-**Last Updated**: 2025-11-25
-**Previous**: See `PHASE_4_COMPLETE.md` for what was just built
+**Current Status**: Phase 5 In Progress (Frontend Working)
+**Last Updated**: 2025-11-29
+**Previous**: See `PHASE_4_COMPLETE.md` for evaluation system, `FRONTEND_COMPLETE.md` for initial frontend build
 
 ---
 
 ## Where We Left Off
 
-The evaluation system is done. I can now track real impact metrics and prove Echo delivers value.
+The frontend is now working in Codespaces. Spent today fixing networking issues and API contract mismatches.
 
 **What's working:**
-- Session tracking (automatically records how long tasks take)
-- Time savings calculation (compares actual vs baseline)
-- Feedback collection (ratings, accuracy validation, text feedback)
-- Analytics aggregation (time, satisfaction, accuracy, usage stats)
-- Portfolio stats endpoint (showcase-ready metrics)
-- Telemetry middleware (logs every request with timing)
-- 190 tests passing, 82% coverage
+- Full Next.js frontend with 3 pages (Home, Chat, Reports)
+- API proxy route that handles Codespaces port forwarding issues
+- File uploads work through the browser
+- Chat with Echo works
+- Report generation works
+- All 190 backend tests passing, 82% coverage
 
-The core product is functionally complete. Chat works, reports work, metrics work, and I can measure impact.
+**What we fixed today (2025-11-29):**
+1. Created Next.js API proxy at `/api/proxy/[...path]` - browser couldn't reach port 8000 directly in Codespaces, so all API calls now go through port 3000 and get forwarded internally
+2. Fixed chat/with-data endpoint - backend expects `message` as query param, not form data
+3. Fixed response field mismatch - backend returns `response`, frontend was looking for `message`
+4. Updated CORS to use wildcard for development
+
+The app works end-to-end now. Can upload a CSV, see metrics, chat with Echo, generate reports. All through the browser.
 
 ---
 
-## What We Need to Do Next: Phase 5
+## What We Need to Do Next
 
-Phase 5 is about making Echo production-ready. The features are done, now it's about reliability, security, and deployment.
+### Immediate Priority: Production Deployment
 
-### Task 1: CI/CD Pipeline
+The frontend works locally. Now we need to deploy it.
 
-Set up GitHub Actions to automate testing and deployment.
+**Task 1: Deploy Backend to Railway**
 
-**What to build:**
-```yaml
-.github/workflows/
-├── test.yml          # Run tests on every PR
-├── lint.yml          # Check code quality
-└── deploy.yml        # Deploy to production on merge
-```
+What to do:
+1. Create Railway project
+2. Add PostgreSQL add-on
+3. Add Redis add-on
+4. Set environment variables (DATABASE_URL, REDIS_URL, DEEPSEEK_API_KEY, etc.)
+5. Deploy from GitHub repo
 
-**Pipeline steps:**
-1. Run all tests with coverage
-2. Lint code (black, isort, flake8)
-3. Type checking (mypy)
-4. Build Docker image
-5. Deploy to Railway/Render
+The Dockerfile and docker-compose already exist. Railway should pick them up automatically.
 
-This ensures nothing breaks in production.
+**Task 2: Deploy Frontend to Vercel**
 
-### Task 2: Better Error Handling
+What to do:
+1. Create Vercel project
+2. Set NEXT_PUBLIC_API_URL to the Railway backend URL
+3. Deploy from GitHub repo
 
-Right now errors are basic. Make them production-grade.
+Once deployed, we can remove the proxy workaround since Vercel and Railway communicate directly without Codespaces issues.
 
-**What to improve:**
-1. Custom exception classes for different error types
-2. Consistent error response format across all endpoints
-3. Better error messages (tell users what went wrong and how to fix it)
-4. Log errors with full context for debugging
-5. Handle edge cases gracefully (missing data, malformed CSV, API timeouts)
+**Task 3: Update Frontend for Production**
 
-**Example:**
-```python
-class DataValidationError(Exception):
-    def __init__(self, field, message, suggestion):
-        self.field = field
-        self.message = message
-        self.suggestion = suggestion
-```
+The current setup uses a proxy because of Codespaces. For production:
+1. Remove the proxy route (or keep it as fallback)
+2. Update `lib/api.ts` to use the production API URL directly
+3. Test the direct connection
 
-### Task 3: Security & Rate Limiting
+---
 
-Add production security features.
+### Remaining Phase 5 Tasks
 
-**What to add:**
-1. Rate limiting (max requests per user per minute)
-2. CORS configuration (only allow specific origins in production)
-3. Security headers (helmet-style middleware)
-4. API key authentication (optional for now)
-5. Input validation on all endpoints
-6. Sanitize file uploads (check file size, type, content)
+After deployment:
 
-**Tools:**
-- `slowapi` for rate limiting
-- FastAPI's CORS middleware (already have it, just need proper config)
+**CI/CD Pipeline**
+- GitHub Actions workflow for tests on PR
+- Auto-deploy to Railway/Vercel on merge to main
+- Lint and type checking in pipeline
+
+**Security & Rate Limiting**
+- Rate limiting with slowapi
+- CORS configuration for production (specific origins, not wildcard)
 - Security headers middleware
+- API key authentication (optional)
 
-### Task 4: Performance Optimization
+**Error Handling**
+- Consistent error response format
+- Better error messages for users
+- Proper logging for debugging
 
-Make Echo fast under load.
-
-**What to optimize:**
-1. Cache metric calculations (same file = same metrics)
-2. Database query optimization (add indexes)
-3. Connection pooling (already have it, tune the settings)
-4. Async everything (already mostly async, audit remaining sync code)
-5. Load testing (locust or k6)
-6. Profile slow endpoints and fix bottlenecks
-
-**Cache strategy:**
-- Cache metrics by file hash for 1 hour
-- Cache LLM responses (same context = same response) for 5 minutes
-- Invalidate on new data upload
-
-### Task 5: Monitoring & Alerting
-
-Know when things break.
-
-**What to add:**
-1. Error tracking (Sentry or similar)
-2. Performance monitoring (response times, throughput)
-3. Health check improvements (deep health checks)
-4. Alerts for failures (email or Slack)
-5. Usage dashboards (who's using what)
-
-**Metrics to track:**
-- Request rate, error rate, latency (P50, P95, P99)
-- Database connection pool usage
-- Redis connection health
-- LLM API call success rate and latency
-
-### Task 6: Deployment
-
-Get Echo live on the internet.
-
-**Deployment options:**
-1. **Railway** (easiest) - Auto-deploy from GitHub
-2. **Render** (good free tier) - Similar to Railway
-3. **Fly.io** (more control) - Close to metal
-4. **DigitalOcean App Platform** (familiar) - Traditional VPS-style
-
-**What to deploy:**
-- FastAPI app (containerized)
-- PostgreSQL (managed database)
-- Redis (managed cache)
-
-**Environment setup:**
-- Production .env file with real secrets
-- Backup strategy for PostgreSQL
-- SSL/TLS certificates
-- Custom domain (optional)
+**Monitoring**
+- Error tracking (Sentry or similar)
+- Response time monitoring
+- Health check dashboard
 
 ---
 
 ## Quick Win Order
 
-If I want to get to production quickly, here's the priority:
+Priority for getting to production:
 
-1. **Deploy first** (get it live) - 1-2 hours
-2. **Error handling** (fix obvious issues) - 2-3 hours
-3. **Security basics** (rate limiting, CORS) - 1 hour
-4. **CI/CD** (automate deployments) - 2-3 hours
-5. **Monitoring** (know when it breaks) - 1-2 hours
-6. **Performance** (optimize after seeing real usage) - 3-4 hours
+1. **Deploy backend to Railway** - 1-2 hours
+2. **Deploy frontend to Vercel** - 30 minutes
+3. **Test production deployment** - 1 hour
+4. **Set up CI/CD** - 2-3 hours
+5. **Add rate limiting** - 1 hour
+6. **Add monitoring** - 1-2 hours
 
-Total: 10-15 hours to production-ready.
-
----
-
-## Success Criteria
-
-Phase 5 is complete when:
-1. Deployed to production and accessible via public URL
-2. CI/CD pipeline running (tests + deploy on merge)
-3. Error handling is consistent and helpful
-4. Rate limiting prevents abuse
-5. Monitoring set up (know when things break)
-6. Load tested (handles 100+ concurrent requests)
+Total: 6-10 hours to production.
 
 ---
 
-## Files to Reference
+## Files Changed Today
 
-Current architecture:
-- Main app: `app/main.py`
-- API router: `app/api/v1/router.py`
-- Config: `app/config.py`
-- Database: `app/core/database.py`
-- Telemetry: `app/middleware/telemetry.py`
+**Created:**
+- `/frontend/app/api/proxy/[...path]/route.ts` - API proxy for Codespaces
 
-Original Phase 5 plan:
-- `planning/06_PHASE_5_ENGINEERING_EXCELLENCE.md`
+**Modified:**
+- `/frontend/lib/api.ts` - Fixed chat/with-data call, uses proxy
+- `/frontend/app/chat/page.tsx` - Fixed response field handling
+- `/.env` - Updated CORS to wildcard
 
 ---
 
-## Testing Current System
+## Testing the Current System
 
-Before starting Phase 5, verify everything works:
+Everything should work now:
 
 ```bash
-# Start services
+# Start backend
 docker-compose up -d
 
-# Run all tests
-docker-compose exec app pytest -v --cov=app
+# Start frontend
+cd frontend
+npm run dev
 
-# Test Phase 4 features
-./test_phase4.sh
-
-# Generate a report
-curl -X POST "http://localhost:8000/api/v1/reports/generate?template_type=revenue_health" \
-  -F "file=@data/samples/revenue_sample.csv"
-
-# Check portfolio stats
-curl "http://localhost:8000/api/v1/analytics/portfolio" | python3 -m json.tool
+# Open browser
+# Home: http://localhost:3000
+# Chat: http://localhost:3000/chat
+# Reports: http://localhost:3000/reports
 ```
 
-Everything should work. Now let's make it production-grade.
+Upload `data/samples/revenue_sample.csv` to test. Should see metrics, can chat about them, can generate reports.
+
+Backend API docs still available at http://localhost:8000/api/v1/docs
 
 ---
 
-*Last updated: 2025-11-25*
+## Success Criteria for Phase 5
+
+Phase 5 is complete when:
+1. Deployed to production (Railway + Vercel)
+2. CI/CD pipeline running
+3. Rate limiting in place
+4. Basic monitoring set up
+5. Works reliably for demo purposes
+
+---
+
+*Last updated: 2025-11-29*
