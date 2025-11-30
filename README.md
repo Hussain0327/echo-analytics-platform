@@ -1,4 +1,4 @@
-# Echo - AI Data Scientist for Small Businesses
+# Echo - AI Data Scientist
 
 > Building an AI-powered analytics tool that turns messy business data into clear insights. Because small businesses deserve good data tools too.
 
