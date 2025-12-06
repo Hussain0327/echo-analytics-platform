@@ -2,6 +2,12 @@
 
 AI-powered analytics for small businesses. Turn messy CSVs into clear insights in minutes, not hours.
 
+![Tests Passing](https://img.shields.io/badge/tests-225%20passing-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-78%25-blue)
+![Backend-FastAPI](https://img.shields.io/badge/backend-FastAPI-lightgrey)
+![Frontend-Next.js%2015](https://img.shields.io/badge/frontend-Next.js%2015-orange)
+![LLM-DeepSeek%203.2](https://img.shields.io/badge/LLM-DeepSeek%203.2-purple)
+
 ## What It Does
 
 - Cleans and validates raw business data automatically (dates, currency, booleans, column names)
@@ -231,12 +237,12 @@ Set up Docker environment, FastAPI, PostgreSQL, Redis, and DeepSeek integration.
 
 ---
 
-## License
 
-MIT
+## License
+MIT License — free for personal and commercial use.
 
 ---
 
 ## Contact
 
-Questions or feedback? Open an issue.
+Questions or feedback? Open an issue or reach out directly.
